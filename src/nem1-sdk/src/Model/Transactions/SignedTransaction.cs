@@ -26,6 +26,7 @@
 using System;
 using System.Text.RegularExpressions;
 using io.nem1.sdk.Core.Crypto.Chaso.NaCl;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace io.nem1.sdk.Model.Transactions
@@ -35,6 +36,7 @@ namespace io.nem1.sdk.Model.Transactions
     /// </summary>
     public class SignedTransaction
     {
+        [JsonProperty]
         internal JObject TransactionPacket { get; set; }
         /// <summary>
         /// Gets or sets the payload.
@@ -84,6 +86,11 @@ namespace io.nem1.sdk.Model.Transactions
             TransactionPacket = JObject.Parse("{\"data\":\"" + payload + "\",\"signature\":\"" + signature + "\"}");
         }
 
+        [JsonConstructor]
+        private SignedTransaction() 
+        {
+        }
+
         /// <summary>
         /// Static creates a new instance of the <see cref="SignedTransaction"/> class.
         /// </summary>
@@ -113,6 +120,16 @@ namespace io.nem1.sdk.Model.Transactions
             if (signer == null) throw new ArgumentNullException(nameof(signer));
             if (signer.Length != 32) throw new ArgumentException("invalid signer length");
             return new SignedTransaction(payload.ToHexLower(), signature.ToHexLower(), hash.ToHexLower(), signer.ToHexLower(), transactionType);
+        }
+
+        public static SignedTransaction FromJson(string value)
+        {
+            return JsonConvert.DeserializeObject<SignedTransaction>(value);
+        }
+
+        public string ToJson()
+        {
+            return JsonConvert.SerializeObject(this);
         }
     }
 }

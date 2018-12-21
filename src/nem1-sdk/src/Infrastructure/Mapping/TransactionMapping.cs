@@ -117,7 +117,9 @@ namespace io.nem1.sdk.Infrastructure.Mapping
                     : tx["mosaics"]?.Select(m => new Mosaic(m["mosaicId"]["namespaceId"].ToString(), m["mosaicId"]["name"].ToString(), ulong.Parse(m["quantity"].ToString()))).ToList(),
                 tx["message"].ToString() == "{}" ? EmptyMessage.Create() : RetrieveMessage(tx["message"].ToObject<JObject>()),
                 tx["signature"]?.ToString(),
-                new PublicAccount(tx["signer"].ToString(), ExtractNetworkType(int.Parse(tx["version"].ToString()))),
+                tx["signer"] != null 
+                    ? new PublicAccount(tx["signer"].ToString(), ExtractNetworkType(int.Parse(tx["version"].ToString())))
+                    : null,
                 txInfo
             );
         }

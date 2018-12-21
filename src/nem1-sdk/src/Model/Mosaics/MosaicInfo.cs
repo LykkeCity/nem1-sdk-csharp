@@ -17,7 +17,7 @@ namespace io.nem1.sdk.Model.Mosaics
         /// <param name="mosaicId">The mosaic identifier.</param>
         /// <param name="properties">The properties.</param>
         /// <param name="levy">The levy.</param>
-        public MosaicInfo(int id, PublicAccount creator, string description, MosaicId mosaicId, MosaicProperties properties, Mosaic levy)
+        public MosaicInfo(int id, PublicAccount creator, string description, MosaicId mosaicId, MosaicProperties properties, MosaicLevy levy)
         {
             Id = id;
             Creator = creator;
@@ -56,6 +56,6 @@ namespace io.nem1.sdk.Model.Mosaics
         /// Gets the levy.
         /// </summary>
         /// <value>The levy.</value>
-        public Mosaic Levy { get; }
+        public MosaicLevy Levy { get; }
     }
 }

@@ -25,15 +25,22 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reactive.Linq;
 using System.Text;
+using System.Threading.Tasks;
+using io.nem1.sdk.Core.Crypto.Chaso.NaCl;
 using io.nem1.sdk.Infrastructure.Buffers;
 using io.nem1.sdk.Infrastructure.Buffers.Schema;
+using io.nem1.sdk.Infrastructure.HttpRepositories;
 using io.nem1.sdk.Infrastructure.Imported.FlatBuffers;
+using io.nem1.sdk.Infrastructure.Mapping;
 using io.nem1.sdk.Model.Accounts;
 using io.nem1.sdk.Model.Blockchain;
 using io.nem1.sdk.Model.Mosaics;
 using io.nem1.sdk.Model.Network;
 using io.nem1.sdk.Model.Transactions.Messages;
+using Newtonsoft.Json;
 
 namespace io.nem1.sdk.Model.Transactions
 {
@@ -238,7 +245,7 @@ namespace io.nem1.sdk.Model.Transactions
                          
                          if (s <= 10000 && d == 0)
                          {
-                             Fee += 1000000;
+                            Fee += 500000;
                          }
                          else
                          {
@@ -271,5 +278,116 @@ namespace io.nem1.sdk.Model.Transactions
                 ? 50000 * (ulong)Math.Floor((double)Message.GetLength() / 32 + 1)
                 : 0;
         }
-    }  
+
+        /// <summary>
+        /// Calculates transaction fee and updates <see cref="Fee"/> property value.
+        /// </summary>
+        /// <returns>Calculated value.</returns>
+        public async Task<(ulong fee, Mosaic[] levies)> CalculateFee(NamespaceMosaicHttp namespaceMosaicHttp)
+        {
+            var fee = 0UL;
+            var levies = new List<Mosaic>();
+
+            foreach (var m in Mosaics)
+            {
+                MosaicInfo mosaicInfo = null;
+
+                if (m.NamespaceName != Xem.NamespaceName ||
+                    m.MosaicName != Xem.MosaicName)
+                {
+                    var namespaceMosaics = await namespaceMosaicHttp.GetNamespaceMosaics(m.NamespaceName);
+
+                    mosaicInfo = namespaceMosaics.FirstOrDefault(x => x.MosaicId.NamespaceId.Name == m.NamespaceName && x.MosaicId.Name == m.MosaicName) ??
+                        throw new InvalidOperationException($"Mosaic {m.NamespaceName}:{m.MosaicName} not found");
+                }
+
+                if (NetworkType != Blockchain.NetworkType.Types.MIJIN &&
+                    NetworkType != Blockchain.NetworkType.Types.MIJIN_TEST)
+                {
+                    var q = m.Amount;
+                    var d = Convert.ToUInt32(mosaicInfo?.Properties?.Divisibility ?? Xem.Divisibility);
+                    var s = Convert.ToUInt64(mosaicInfo?.Properties?.InitialSupply ?? Xem.InitialSupply);
+
+                    if (s <= 10000 && d == 0)
+                    {
+                        fee += 500000;
+                    }
+                    else
+                    {
+                        // get xem equivilent
+                        var xemEquivalent = 8999999999 * (q / Math.Pow(10, d)) / (s * 10 ^ d) * 1000000;
+
+                        // apply xem transfer fee formula 
+                        var xemFee = Math.Max(1, Math.Min((long)Math.Ceiling((decimal)xemEquivalent / 1000000000), 25)) * 1000000;
+
+                        // Adjust fee based on supply
+                        const long maxMosaicQuantity = 9000000000000000;
+
+                        // get total mosaic quantity
+                        var totalMosaicQuantity = s * Math.Pow(10, d);
+
+                        // get supply related adjustment
+                        var supplyRelatedAdjustment = Math.Floor(0.8 * Math.Log(maxMosaicQuantity / totalMosaicQuantity)) * 1000000;
+
+                        // get final individual mosaic fee
+                        var individualMosaicfee = (ulong)Math.Max(1000000, xemFee - supplyRelatedAdjustment);
+
+                        // add individual fee to total fee for all mosaics to be sent 
+                        fee += individualMosaicfee / 20;
+                    }
+                }
+
+                fee += Message.GetLength() > 0
+                    ? 50000 * (ulong)Math.Floor((double)Message.GetLength() / 32 + 1)
+                    : 0;
+
+                if (mosaicInfo?.Levy != null)
+                {
+                    var levyAmount = mosaicInfo.Levy.FeeType == 1
+                        ? mosaicInfo.Levy.Mosaic.Amount
+                        : mosaicInfo.Levy.Mosaic.Amount * m.Amount / 10_000;
+
+                    levies.Add(new Mosaic(mosaicInfo.Levy.Mosaic.NamespaceName, mosaicInfo.Levy.Mosaic.MosaicName, levyAmount));
+                }
+            }
+
+            Fee = fee; // update self property value
+
+            return (fee, levies.ToArray());
+        }
+
+        /// <summary>
+        /// Converts transaction to JSON string.
+        /// </summary>
+        /// <returns></returns>
+        public string ToJson()
+        {
+            return JsonConvert.SerializeObject(new
+            {
+                type = TransactionType,
+                version = BitConverter.ToInt32(new byte[] { (byte)Version, 0, 0, NetworkType.GetNetwork() }, 0),
+                deadline = Deadline.GetInstant(),
+                fee = Fee,
+                recipient = Address.Plain,
+                mosaics = Mosaics.Select(m => new { mosaicId = new { namespaceId = m.NamespaceName, name = m.MosaicName }, quantity = m.Amount }),
+                message = Message.GetLength() == 0
+                    ? new object()
+                    : new
+                    {
+                        type = Message.GetType() == typeof(SecureMessage) ? 2 : 1,
+                        payload = Message.GetPayload().ToHexLower()
+                    }
+            });
+        }
+
+        /// <summary>
+        /// Converts JSON string to transaction.
+        /// </summary>
+        /// <param name="value">JSON</param>
+        /// <returns></returns>
+        public static TransferTransaction FromJson(string value)
+        {
+            return new TransactionMapping().Apply(value) as TransferTransaction;
+        }
+    }
 }

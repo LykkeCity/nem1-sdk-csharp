@@ -180,7 +180,7 @@ namespace io.nem1.sdk.Infrastructure.HttpRepositories
         /// </example>
         public IObservable<List<MosaicInfo>> GetNamespaceMosaics(string nameSpace)
         {
-            return GetNamespaceMosaics(nameSpace, null, 25);
+            return GetNamespaceMosaics(nameSpace, null, 100);
         }
 
         /// <summary>
@@ -234,7 +234,14 @@ namespace io.nem1.sdk.Infrastructure.HttpRepositories
                             ulong.Parse(i["mosaic"]["properties"].ToList()[1]["value"].ToString()),
                             bool.Parse(i["mosaic"]["properties"].ToList()[2]["value"].ToString()),
                             bool.Parse(i["mosaic"]["properties"].ToList()[3]["value"].ToString())),
-                        null)).ToList()                
+                        !i["mosaic"]["levy"].HasValues ? 
+                            null : 
+                            new MosaicLevy(
+                                new Mosaic(i["mosaic"]["levy"]["mosaicId"]["namespaceId"].ToString(), i["mosaic"]["levy"]["mosaicId"]["name"].ToString(), ulong.Parse(i["mosaic"]["levy"]["fee"].ToString())),
+                                int.Parse(i["mosaic"]["levy"]["type"].ToString()),
+                                Address.CreateFromEncoded(i["mosaic"]["levy"]["recipient"].ToString())
+                            )
+                    )).ToList()                
                 );
         }
     } 
