@@ -280,15 +280,16 @@ namespace io.nem1.sdk.Model.Transactions
         }
 
         /// <summary>
-        /// Calculates transaction fee and updates <see cref="Fee"/> property value.
+        /// Calculates transaction fee by its content.
         /// </summary>
-        /// <returns>Calculated value.</returns>
-        public async Task<(ulong fee, Mosaic[] levies)> CalculateFee(NamespaceMosaicHttp namespaceMosaicHttp)
+        /// <returns>XEM fee and possible mosaics levy (may me empty array)</returns>
+        public static async Task<(ulong fee, Mosaic[] levies)> CalculateFee(NetworkType.Types network, IMessage message,
+            IEnumerable<Mosaic> mosaics, NamespaceMosaicHttp namespaceMosaicHttp)
         {
             var fee = 0UL;
             var levies = new List<Mosaic>();
 
-            foreach (var m in Mosaics)
+            foreach (var m in mosaics)
             {
                 MosaicInfo mosaicInfo = null;
 
@@ -301,8 +302,8 @@ namespace io.nem1.sdk.Model.Transactions
                         throw new InvalidOperationException($"Mosaic {m.NamespaceName}:{m.MosaicName} not found");
                 }
 
-                if (NetworkType != Blockchain.NetworkType.Types.MIJIN &&
-                    NetworkType != Blockchain.NetworkType.Types.MIJIN_TEST)
+                if (network != Blockchain.NetworkType.Types.MIJIN &&
+                    network != Blockchain.NetworkType.Types.MIJIN_TEST)
                 {
                     var q = m.Amount;
                     var d = Convert.ToUInt32(mosaicInfo?.Properties?.Divisibility ?? Xem.Divisibility);
@@ -337,8 +338,8 @@ namespace io.nem1.sdk.Model.Transactions
                     }
                 }
 
-                fee += Message.GetLength() > 0
-                    ? 50000 * (ulong)Math.Floor((double)Message.GetLength() / 32 + 1)
+                fee += message.GetLength() > 0
+                    ? 50000 * (ulong)Math.Floor((double)message.GetLength() / 32 + 1)
                     : 0;
 
                 if (mosaicInfo?.Levy != null)
@@ -350,8 +351,6 @@ namespace io.nem1.sdk.Model.Transactions
                     levies.Add(new Mosaic(mosaicInfo.Levy.Mosaic.NamespaceName, mosaicInfo.Levy.Mosaic.MosaicName, levyAmount));
                 }
             }
-
-            Fee = fee; // update self property value
 
             return (fee, levies.ToArray());
         }

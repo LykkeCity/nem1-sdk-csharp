@@ -99,5 +99,16 @@ namespace io.nem1.sdk.Infrastructure.HttpRepositories
             return Observable.FromAsync(async ar => await TransactionRoutesApi.SendTransactionAsync(signedTransaction.TransactionPacket));
         }
 
+        /// <summary>
+        /// Returns a transaction by its hash
+        /// </summary>
+        /// <param name="transactionHash">The hash of transaction to retrieve</param>
+        /// <returns></returns>
+        public IObservable<Transaction> GetByHash(string transactionHash)
+        {
+            if (string.IsNullOrEmpty(transactionHash)) throw new ArgumentNullException(nameof(transactionHash));
+
+            return Observable.FromAsync(async ar => await TransactionRoutesApi.TransactionByHashAsync(transactionHash));
+        }
     }
 }
