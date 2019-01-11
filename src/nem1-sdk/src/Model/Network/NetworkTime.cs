@@ -38,7 +38,7 @@ namespace io.nem1.sdk.Model.Network
         /// <returns>The network time.</returns>
         public static int EpochTimeInMilliSeconds()
         {
-            var d = new DateTime(2015, 03, 29, 0, 6, 25, 0);
+            var d = new DateTime(2015, 03, 29, 0, 6, 25, 0, DateTimeKind.Utc);
 
             var n = DateTime.UtcNow;
             

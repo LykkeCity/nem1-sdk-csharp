@@ -69,6 +69,11 @@ namespace io.nem1.sdk.Model.Transactions
         public List<Mosaic> Mosaics { get; }
 
         /// <summary>
+        /// Gets the timestamp.
+        /// </summary>
+        public int TimeStamp { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TransferTransaction"/> class.
         /// </summary>
         /// <param name="networkType">Type of the network.</param>
@@ -78,17 +83,19 @@ namespace io.nem1.sdk.Model.Transactions
         /// <param name="recipient">The recipient.</param>
         /// <param name="mosaics">The mosaics.</param>
         /// <param name="message">The message.</param>
+        /// <param name="timeStamp">The timestamp.</param>
         /// <exception cref="System.ArgumentNullException">recipient</exception>
-        internal TransferTransaction(NetworkType.Types networkType, byte version, Deadline deadline, ulong fee, Address recipient, List<Mosaic> mosaics, IMessage message)
+        internal TransferTransaction(NetworkType.Types networkType, byte version, Deadline deadline, ulong fee, Address recipient, List<Mosaic> mosaics, IMessage message, int timeStamp)
         {
             Address = recipient ?? throw new ArgumentNullException(nameof(recipient));
             TransactionType = TransactionTypes.Types.Transfer;
             Version = version;
             Deadline = deadline;
             Message = message ?? EmptyMessage.Create();
-            Mosaics = mosaics ?? new List<Mosaic>(); ;
+            Mosaics = mosaics ?? new List<Mosaic>();
             NetworkType = networkType;
-            Fee = fee == 0 ? CalculateFee() : fee;          
+            Fee = fee == 0 ? CalculateFee() : fee;
+            TimeStamp = timeStamp;
         }
 
         /// <summary>
@@ -105,7 +112,7 @@ namespace io.nem1.sdk.Model.Transactions
         /// <param name="signer">The signer.</param>
         /// <param name="transactionInfo">The transaction information.</param>
         /// <exception cref="System.ArgumentNullException">recipient</exception>
-        internal TransferTransaction(NetworkType.Types networkType, int version, Deadline deadline, ulong fee, Address recipient, List<Mosaic> mosaics, IMessage message, string signature, PublicAccount signer, TransactionInfo transactionInfo)
+        internal TransferTransaction(NetworkType.Types networkType, int version, Deadline deadline, ulong fee, Address recipient, List<Mosaic> mosaics, IMessage message, int timeStamp, string signature, PublicAccount signer, TransactionInfo transactionInfo)
         {
             Address = recipient ?? throw new ArgumentNullException(nameof(recipient));
             Mosaics = mosaics ?? new List<Mosaic>();
@@ -118,10 +125,26 @@ namespace io.nem1.sdk.Model.Transactions
             Signer = signer;
             TransactionInfo = transactionInfo;
             Fee = fee == 0 ? CalculateFee() : fee;
+            TimeStamp = timeStamp;
         }
 
         /// <summary>
-        /// Creates the specified netowrk type.
+        /// Creates the transfer transaction.
+        /// </summary>
+        /// <param name="netowrkType">Type of the netowrk.</param>
+        /// <param name="deadline">The deadline.</param>
+        /// <param name="timeStamp">The timestamp.</param>
+        /// <param name="fee">The fee.</param>
+        /// <param name="address">The address.</param>
+        /// <param name="mosaics">The mosaics.</param>
+        /// <param name="message">The message.</param>
+        /// <returns>TransferTransaction.</returns>
+        public static TransferTransaction Create(NetworkType.Types netowrkType, Deadline deadline, ulong fee, Address address, List<Mosaic> mosaics, IMessage message, int timeStamp)
+        {
+            return new TransferTransaction(netowrkType, 2, deadline, fee, address, mosaics, message, timeStamp);
+        }
+        /// <summary>
+        /// Creates the transfer transaction.
         /// </summary>
         /// <param name="netowrkType">Type of the netowrk.</param>
         /// <param name="deadline">The deadline.</param>
@@ -132,10 +155,10 @@ namespace io.nem1.sdk.Model.Transactions
         /// <returns>TransferTransaction.</returns>
         public static TransferTransaction Create(NetworkType.Types netowrkType, Deadline deadline, ulong fee, Address address, List<Mosaic> mosaics, IMessage message)
         {
-            return new TransferTransaction(netowrkType, 2, deadline, fee, address, mosaics, message);
+            return new TransferTransaction(netowrkType, 2, deadline, fee, address, mosaics, message, 0);
         }
         /// <summary>
-        /// Creates the specified netowrk type.
+        /// Creates the transfer transaction.
         /// </summary>
         /// <param name="netowrkType">Type of the netowrk.</param>
         /// <param name="deadline">The deadline.</param>
@@ -145,7 +168,7 @@ namespace io.nem1.sdk.Model.Transactions
         /// <returns>TransferTransaction.</returns>
         public static TransferTransaction Create(NetworkType.Types netowrkType, Deadline deadline, Address address, List<Mosaic> mosaics, IMessage message)
         {
-            return new TransferTransaction(netowrkType, 2, deadline, 0, address, mosaics, message);
+            return new TransferTransaction(netowrkType, 2, deadline, 0, address, mosaics, message, 0);
         }
 
         /// <summary>
@@ -204,7 +227,7 @@ namespace io.nem1.sdk.Model.Transactions
             TransferTransactionBuffer.AddTransactionType(builder, TransactionType.GetValue());
             TransferTransactionBuffer.AddVersion(builder, BitConverter.ToInt16(new byte[] { ExtractVersion(Version), 0 }, 0 ));
             TransferTransactionBuffer.AddNetwork(builder, BitConverter.ToInt16(new byte[] { 0, NetworkType.GetNetwork() }, 0 ));           
-            TransferTransactionBuffer.AddTimestamp(builder, NetworkTime.EpochTimeInMilliSeconds());
+            TransferTransactionBuffer.AddTimestamp(builder, TimeStamp > 0 ? TimeStamp : NetworkTime.EpochTimeInMilliSeconds());
             TransferTransactionBuffer.AddPublicKeyLen(builder, 32);
             TransferTransactionBuffer.AddPublicKey(builder, signer);
             TransferTransactionBuffer.AddFee(builder, Fee);
@@ -375,7 +398,8 @@ namespace io.nem1.sdk.Model.Transactions
                     {
                         type = Message.GetType() == typeof(SecureMessage) ? 2 : 1,
                         payload = Message.GetPayload().ToHexLower()
-                    }
+                    },
+                timeStamp = TimeStamp
             });
         }
 

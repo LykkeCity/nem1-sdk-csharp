@@ -50,7 +50,7 @@ namespace io.nem1.sdk.Model.Transactions
         /// <param name="time">The time.</param>
         public Deadline(TimeSpan time)
         {
-            EpochDate = new DateTime(2015, 03, 29, 0, 6, 25, 0);
+            EpochDate = new DateTime(2015, 03, 29, 0, 6, 25, 0, DateTimeKind.Utc);
 
             var now = DateTime.UtcNow;
 
@@ -65,7 +65,7 @@ namespace io.nem1.sdk.Model.Transactions
         /// <param name="ticks">The ticks.</param>
         public Deadline(int ticks)
         {
-            EpochDate = new DateTime(2015, 03, 29, 0, 6, 25, 0).ToUniversalTime();
+            EpochDate = new DateTime(2015, 03, 29, 0, 6, 25, 0, DateTimeKind.Utc);
 
             Ticks = ticks;
         }
