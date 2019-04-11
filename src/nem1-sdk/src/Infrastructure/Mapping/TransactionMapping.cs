@@ -112,7 +112,7 @@ namespace io.nem1.sdk.Infrastructure.Mapping
                 new Deadline(int.Parse(tx["deadline"].ToString())),
                 ulong.Parse(tx["fee"].ToString()),
                 Address.CreateFromEncoded(tx["recipient"].ToString()),
-                tx["mosaics"] == null
+                tx["mosaics"] == null || !tx["mosaics"].HasValues
                     ? new List<Mosaic>() { new Mosaic("nem", "xem", ulong.Parse(tx["amount"].ToString())) }
                     : tx["mosaics"]?.Select(m => new Mosaic(m["mosaicId"]["namespaceId"].ToString(), m["mosaicId"]["name"].ToString(), ulong.Parse(m["quantity"].ToString()))).ToList(),
                 tx["message"].ToString() == "{}" ? EmptyMessage.Create() : RetrieveMessage(tx["message"].ToObject<JObject>()),
