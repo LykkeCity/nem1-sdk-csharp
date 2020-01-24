@@ -97,5 +97,21 @@ namespace test.src.Model.Transactions
             Assert.IsTrue(tx.Mosaics.Single().Amount == 5000000);
             Assert.IsTrue(tx.Mosaics.Single().MosaicName == "xem" && tx.Mosaics.Single().NamespaceName == "nem");
         }
+
+        [TestMethod]
+        public void ShouldDeserializeMultisigTransaction()
+        {
+            var txJson = "{\"meta\":{\"innerHash\":{\"data\":\"7dfa8689ffb75dec36ccdc066e8e45e275fbce7e30873b06918d87189701a950\"},\"id\":8025346,\"hash\":{\"data\":\"356c351c9b46f701f937b569c3e243f5b6d94f9e8ac3e0f87339bd27833b5e3a\"},\"height\":2511999},\"transaction\":{\"timeStamp\":152027035,\"signature\":\"65b3e03bc0a0f1a250292fa508ea806de96789977c1a9e9559f29e22e3f629d5b67e469d0688ba933862ee865c66ce9ec562e60cf51026eff216f07efe9adf05\",\"fee\":150000,\"type\":4100,\"deadline\":152113435,\"version\":1744830465,\"signatures\":[{\"timeStamp\":152027244,\"otherHash\":{\"data\":\"7dfa8689ffb75dec36ccdc066e8e45e275fbce7e30873b06918d87189701a950\"},\"otherAccount\":\"NA6DFWCPCTHRQN3KVLGF2OV23LOEMCJN4FSFUFJW\",\"signature\":\"3855232a6abb41fb2805aae32d8cb7736c602012073710755ee9e8067b939fe8dec5edc8241bcae78a9e44472b2f8dfd96558148eab627719052db9dc627be0a\",\"fee\":150000,\"type\":4098,\"deadline\":152048844,\"version\":1744830465,\"signer\":\"1d917dbdf339e92c7817b593e6c20109304797632f1bd3b0e08b279fa8617547\"}],\"signer\":\"791d204aa1a8ae6a06853e21ab54fbcc34abd454ad9fbb1303f5950ab8935e04\",\"otherTrans\":{\"timeStamp\":152027035,\"amount\":10000000000,\"fee\":150000,\"recipient\":\"NAFSSJLNTIEI5ISMWKEY2BJFH5LAUSHP7JVQLWGT\",\"type\":257,\"deadline\":152113435,\"message\":{\"payload\":\"3761393265376235323961633461313762623434356362613736363166633137\",\"type\":1},\"version\":1744830465,\"signer\":\"2401cd24fca5daacdd507cc51354efdf439fccbdd2a1cdc020ab08df70d294a7\"}}}";
+
+            var tx = new TransactionMapping().Apply(txJson) as MultisigTransaction;
+            var transfer = tx.InnerTransaction as TransferTransaction;
+
+            Assert.IsNotNull(tx);
+            Assert.IsNotNull(transfer);
+            Assert.AreEqual((transfer.Message as PlainMessage)?.GetStringPayload().Trim(), "7a92e7b529ac4a17bb445cba7661fc17");
+            Assert.IsTrue(transfer.Mosaics.Any());
+            Assert.IsTrue(transfer.Mosaics.Single().Amount == 10000000000);
+            Assert.IsTrue(transfer.Mosaics.Single().MosaicName == "xem" && transfer.Mosaics.Single().NamespaceName == "nem");
+        }
     }
 }
